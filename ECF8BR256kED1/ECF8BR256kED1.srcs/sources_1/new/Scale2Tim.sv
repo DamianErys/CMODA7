@@ -1,3 +1,4 @@
+
 module Scale2TimerTCON (
 
     input  wire SYSCLK,
@@ -16,18 +17,13 @@ module Scale2TimerTCON (
     output wire INTVector,
     output wire TChannel,
     output wire [3:0] TCONLower,
-
-    output wire CLK_NextA,
-    output wire CLK_NextB,
-    output wire EqualA,
-    output wire EqualB,
-    output wire [7:0] PS_TCA,
-    output wire [7:0] PS_TCB,
-
-
     output wire CLK_NextA_dbg,
     output wire CLK_NextB_dbg
 );
+(* KEEP = "TRUE", DONT_TOUCH = "TRUE" *) wire CLK_NextA;
+(* KEEP = "TRUE", DONT_TOUCH = "TRUE" *) wire CLK_NextB;
+(* KEEP = "TRUE", DONT_TOUCH = "TRUE" *) wire CLK_NextAL;
+(* KEEP = "TRUE", DONT_TOUCH = "TRUE" *) wire CLK_NextBL;
 
     // --- internal wires added / clarified ---
     wire TMR_CLR;
@@ -35,13 +31,12 @@ module Scale2TimerTCON (
     // Prescaler A internal values
     wire [7:0] PSValA;
     wire PS_TC_RSTA;
-    wire CLK_NextAL;        // <--- explicit declaration
 
+     wire PS_INCA;
     // Prescaler B internal values
     wire [7:0] PSValB;
     wire PS_TC_RSTB;
     wire PS_INCB;
-    wire CLK_NextBL;        // <--- explicit declaration
 
     // Timer register / counter wires
     wire [7:0] TReg;
@@ -78,7 +73,7 @@ module Scale2TimerTCON (
         .Q   (PSValA),
         .Qn  ()
     );
-
+(* DONT_TOUCH = "TRUE" *)
     PSCTRL PS_Control (
         .SYSCLK(SYSCLK),
         .TReg(PSValA),
@@ -108,12 +103,16 @@ module Scale2TimerTCON (
         .Qn  ()
     );
 
+(* DONT_TOUCH = "TRUE" *)
     UnitDelay ClkADel (
         .sysclk(SYSCLK),
         .Din(CLK_NextA),
         .Dout(CLK_NextAL)   // now declared
     );
-
+    
+    assign CLK_NextA_dbg = CLK_NextA;
+    
+(* DONT_TOUCH = "TRUE" *)
     PSCTRL PSB_Control (
         .SYSCLK(SYSCLK),
         .TReg(PSValB),
@@ -142,7 +141,7 @@ module Scale2TimerTCON (
         .Q   (TReg),
         .Qn  ()
     );
-
+(* KEEP = "TRUE", DONT_TOUCH = "TRUE" *)
     Register8bit TCON_Register (
         .D   (D),
         .CLK (CLK_IN),
@@ -151,13 +150,16 @@ module Scale2TimerTCON (
         .Q   (TCON),
         .Qn  ()
     );
-
+(* KEEP = "TRUE", DONT_TOUCH = "TRUE" *)
     UnitDelay ClkBDel (
         .sysclk(SYSCLK),
         .Din(CLK_NextB),
         .Dout(CLK_NextBL)   // now declared
     );
-
+    
+    
+    assign CLK_NextB_dbg = CLK_NextB;
+(* KEEP = "TRUE", DONT_TOUCH = "TRUE" *)
     TMRCTRL TMR_Control (
         .SYSCLK(SYSCLK),
         .CLK_IN(CLK_NextBL),
