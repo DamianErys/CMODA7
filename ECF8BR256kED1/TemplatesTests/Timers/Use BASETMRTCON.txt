@@ -1,0 +1,105 @@
+module ECF8F24(
+    input  wire sysclk,    // 12 MHz system clock
+    input  wire MCLR,      
+    output wire DLG_LED,   // Debug LED output (1Hz clock)
+    // Control inputs/outputs
+    input  wire PRTA1,     // StoreTreg
+    input  wire PRTA2,     // StoreTCON  
+    input  wire PRTA3,     // StoreTPs
+    input  wire PRTA4,     // TF_CLR
+    input  wire PRTA5,     // CLR
+    output wire PRTA6,     // CLK_Next
+    output wire PRTA7,     // Equal
+    output wire PRTA8,     // TFlag
+    input  wire PRTB1,     
+    input  wire PRTB2,     
+    input  wire PRTB3,     
+    input  wire PRTB4,     
+    input  wire PRTB5,     
+    input  wire PRTB6,     
+    input  wire PRTB7,     
+    input  wire PRTB8,     
+    // Data inputs (Data bus)
+    input  wire D1,        
+    input  wire D2,        
+    input  wire D3,        
+    input  wire D4,        
+    input  wire D5,        
+    input  wire D6,        
+    input  wire D7,       
+    input  wire D8,    
+    
+    output wire Add1, 
+    output wire Add2, 
+    output wire Add3, 
+    output wire Add4,
+    output wire Add5, 
+    output wire Add6, 
+    output wire Add7, 
+    output wire Add8   
+);
+    // Generate 1Hz clock from 12MHz sysclk
+    wire RedCLK;
+    
+    ClockDivider clk_div (
+        .clk_in(sysclk),
+        .reset(MCLR),
+        .clk_out(RedCLK)
+    );
+    
+    // Connect 1Hz clock to debug LED
+    assign DLG_LED = RedCLK;
+    
+    // Internal signal definitions
+    wire [7:0] DataBus = {D8, D7, D6, D5, D4, D3, D2, D1};  // MSB to LSB
+    
+    // Timer signals
+    wire CLK_Next;         // Prescaler clock output
+    wire Equal;            // Prescaler equal flag
+    wire TFlag;            // Timer flag
+    wire INTVector;        // Interrupt vector
+    wire TChannel;         // Timer channel output
+    wire [3:0] TCONLower;  // Lower nibble of TCON
+    
+    // Control signals (derived from inputs)
+    wire StoreTreg = PRTA1;
+    wire StoreTCON = PRTA2;
+    wire StoreTPs = PRTA3;
+    wire TF_CLR = PRTA4;
+    wire CLR = PRTA5;
+    
+    // Debug outputs
+    assign PRTA6 = CLK_Next;     
+    assign PRTA7 = Equal;        
+    assign PRTA8 = TFlag;    
+    
+    // Address bus - currently unconnected (commented out for future use)
+    // assign {Add8, Add7, Add6, Add5, Add4, Add3, Add2, Add1} = SomeValue;
+    
+    // Instantiate the consolidated Scale1TimerTCON module
+    Scale1TimerTCON Timer1 (
+        // System signals
+        .SYSCLK(sysclk),
+        .MCLR(MCLR),
+        
+        // Data and control inputs
+        .D(DataBus),
+        .StoreTreg(StoreTreg),
+        .StoreTCON(StoreTCON),
+        .StoreTPs(StoreTPs),
+        .CLR(CLR),
+        .TF_CLR(TF_CLR),
+        .CLK_IN(RedCLK),         // 1Hz input clock
+        
+        // Timer outputs
+        .TFlag(TFlag),
+        .INTVector(INTVector),
+        .TChannel(TChannel),
+        .TCONLower(TCONLower),
+        
+        // Debug/monitoring outputs
+        .CLK_Next(CLK_Next),
+        .Equal(Equal)
+    );
+    
+endmodule

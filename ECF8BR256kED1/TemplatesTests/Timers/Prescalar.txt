@@ -1,0 +1,84 @@
+module ECF8BR256kED1(
+    input  wire sysclk,    // 12 MHz system clock
+    input  wire MCLR,      
+    output wire DLG_LED,   // Debug LED output (1Hz clock)
+    // Control inputs/outputs
+    input  wire PRTA1,     
+    output wire PRTA2,     
+    output wire PRTA3,     
+    output wire PRTA4,     
+    output wire PRTA5,     
+    output wire PRTA6,     
+    output wire PRTA7,     
+    input  wire PRTB1,     
+    input  wire PRTB2,    
+    input  wire PRTB3,    
+    input  wire PRTB4,     
+    input  wire PRTB5,     
+    input  wire PRTB6,     
+    input  wire PRTB7,     
+    input  wire PRTB8,     
+    // Data inputs (TReg value)
+    input  wire D1,        
+    input  wire D2,        
+    input  wire D3,        
+    input  wire D4,        
+    input  wire D5,        
+    input  wire D6,        
+    input  wire D7,       
+    input  wire D8,    
+    
+    // Address bus outputs (from BUS_A)
+    output wire Add1, Add2, Add3, Add4,
+    output wire Add5, Add6, Add7, Add8   
+);
+    // Generate 1Hz clock from 12MHz sysclk
+    wire RedCLK;
+    
+    ClockDivider clk_div (
+        .clk_in(sysclk),
+        .reset(MCLR),
+        .clk_out(RedCLK)
+    );
+    
+    // Connect 1Hz clock to debug LED
+    assign DLG_LED = RedCLK;
+    
+    // Internal connections
+    wire reset = MCLR;
+    wire [7:0] TReg = {D8, D7, D6, D5, D4, D3, D2, D1};  // MSB to LSB
+    wire [7:0] TC;
+    wire CLK_Next;
+    wire TC_RST;
+    wire INC;
+    
+    // Output the counter value to address bus
+    assign {Add8, Add7, Add6, Add5, Add4, Add3, Add2, Add1} = TC;
+    
+    
+    // Instantiate the PSCTRL module
+    PSCTRL PS_Control (
+        .SYSCLK(sysclk),         // 12MHz for synchronization
+        .TReg(TReg),             // Target value from D1-D8
+        .TC(TC),                 // Current counter value
+        .Enable(PRTB2),          // Enable from PRTB2
+        .CLK_IN(RedCLK),         // Use 1Hz clock as input
+        .StoreTReg(PRTB1),       // Manual reset from PRTB1
+        .CLR(MCLR),              // Clear from MCLR
+        .CLK_Next(CLK_Next),     // Internal signal
+        .TC_RST(TC_RST),         // Reset signal for counter
+        .INC(INC),               // Increment signal for counter
+        .Equal(PRTA3)            // Equal indicator output
+    );
+    
+    // Instantiate the counter
+    Counter test_counter (
+        .INC(INC),               // Increment when INC pulses
+        .TC_RST(TC_RST),         // Reset when TC_RST is high
+        .TC(TC)                  // 8-bit counter output
+    );
+    
+    // Additional output for CLK_Next to observe timing
+    assign PRTA2 = CLK_Next;
+    
+endmodule

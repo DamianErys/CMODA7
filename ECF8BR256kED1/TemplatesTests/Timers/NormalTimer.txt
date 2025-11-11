@@ -1,0 +1,103 @@
+module ECF8BR256kED1(
+    input  wire sysclk,    // 12 MHz system clock
+    input  wire MCLR,      
+    output wire DLG_LED,   // Debug LED output (1Hz clock)
+    // Control inputs/outputs
+    input  wire PRTA1,     // CLR
+    output wire PRTA2,     // TFlag
+    output wire PRTA3,     // TChannel
+    input  wire PRTA4,     // TF_CLR
+    output wire PRTA5,     // 
+    output wire PRTA6,     // 
+    output wire PRTA7,     // 
+    input  wire PRTB1,     // Enable (TCON input)
+    input  wire PRTB2,     // AutoReload (TCON input)
+    input  wire PRTB3,     // ENInterrupt (TCON input)
+    input  wire PRTB4,     // CHOutput (TCON input)
+    input  wire PRTB5,     
+    input  wire PRTB6,     
+    input  wire PRTB7,     
+    input  wire PRTB8,     
+    // Data inputs (TReg value)
+    input  wire D1,        
+    input  wire D2,        
+    input  wire D3,        
+    input  wire D4,        
+    input  wire D5,        
+    input  wire D6,        
+    input  wire D7,       
+    input  wire D8,    
+    
+    // Address bus outputs (from BUS_A)
+    output wire Add1, Add2, Add3, Add4,
+    output wire Add5, Add6, Add7, Add8   
+);
+    // Generate 1Hz clock from 12MHz sysclk
+    wire RedCLK;
+    
+    ClockDivider clk_div (
+        .clk_in(sysclk),
+        .reset(MCLR),
+        .clk_out(RedCLK)
+    );
+    
+    // Connect 1Hz clock to debug LED
+    assign DLG_LED = RedCLK;
+    
+    // Internal connections
+    wire reset = MCLR;
+    wire [7:0] TReg = {D8, D7, D6, D5, D4, D3, D2, D1};  // MSB to LSB
+    wire [7:0] TC;
+    wire TC_RST;
+    wire INC;
+    wire Equal;
+    wire INTVector;
+    wire TFlag;
+    wire TMR_CLR;
+    wire TChannel;
+    
+    // Output the counter value to address bus
+    assign {Add8, Add7, Add6, Add5, Add4, Add3, Add2, Add1} = TC;
+    
+    // Test outputs
+    assign PRTA2 = TFlag;      // Timer flag output
+    assign PRTA3 = TChannel;   // Channel output 
+    assign PRTA5 = Equal;      // Equal indicator for debugging
+    assign PRTA6 = INTVector;  // Interrupt vector for debugging
+    assign PRTA7 = TC_RST;     // Counter reset signal for debugging
+    
+    // Instantiate the TMRCTRL module
+    TMRCTRL TMR_Control (
+        .SYSCLK(sysclk),         // 12MHz for synchronization
+        .CLK_IN(RedCLK),         // Use 1Hz clock as input
+        .TReg(TReg),             // Target value from D1-D8
+        .TC(TC),                 // Current counter value
+        .StoreTReg(1'b0),        // Always low as specified
+        .CLR(PRTA1),             // Clear from PRTA1
+        .TF_CLR(PRTA4),          // Timer flag clear from PRTA4
+        .MCLR(MCLR),             // Master clear
+        
+        // TCON inputs from PRTB1-4
+        .Enable(PRTB1),          // Enable from PRTB1
+        .AutoReload(PRTB2),      // Auto reload from PRTB2
+        .ENInterrupt(PRTB3),     // Enable interrupt from PRTB3
+        .CHOutput(PRTB4),        // Channel output enable from PRTB4
+        
+        // Outputs
+        .TC_RST(TC_RST),         // Reset signal for counter
+        .INC(INC),               // Increment signal for counter
+        .Equal(Equal),           // Equal indicator
+        .INTVector(INTVector),   // Interrupt vector
+        .TFlag(TFlag),           // Timer flag
+        .TMR_CLR(TMR_CLR),       // Internal clear signal
+        .TChannel(TChannel)      // Channel output
+    );
+    
+    // Instantiate the counter
+    Counter test_counter (
+        .INC(INC),               // Increment when INC pulses
+        .TC_RST(TC_RST),         // Reset when TC_RST is high
+        .TC(TC)                  // 8-bit counter output
+    );
+    
+endmodule

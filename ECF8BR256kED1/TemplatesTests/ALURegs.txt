@@ -1,0 +1,66 @@
+module ECF8BR256kED1(
+    input  wire sysclk,    // 12 MHz system clock
+    input  wire MCLR,      // Master clear (reset)
+
+    // Store enables
+    input  wire PRTA1,     // STR_A1
+    input  wire PRTA2,     // STR_A2
+    input  wire PRTA3,     // STR_B1
+    input  wire PRTA4,     // STR_B2
+
+    // Select signals
+    input  wire PRTA5,     // Sel_A1
+    input  wire PRTA6,     // Sel_A2
+    input  wire PRTA7,     // Sel_B1
+    input  wire PRTA8,     // Sel_B2
+
+    // Data input pins
+    input  wire D1, D2, D3, D4, D5, D6, D7, D8,
+
+    // Address bus outputs (from BUS_A)
+    output wire Add1, Add2, Add3, Add4,
+    output wire Add5, Add6, Add7, Add8,
+
+    // Direct bypass outputs (REGA1 routed here)
+    output wire PRTB1, PRTB2, PRTB3, PRTB4,
+    output wire PRTB5, PRTB6, PRTB7, PRTB8,
+    
+    output wire Add9
+);
+
+    // Bundle data inputs
+    wire [7:0] data_bus = {D8, D7, D6, D5, D4, D3, D2, D1};
+
+    // ALURegs buses
+    wire [7:0] bus_a, bus_b;
+    wire [7:0] rega1, rega2, regb1, regb2;
+
+    // Map BUS_A onto Add outputs
+    assign {Add8, Add7, Add6, Add5, Add4, Add3, Add2, Add1} = bus_b;
+
+    // Map REGA1 onto PRTB outputs
+    assign {PRTB8, PRTB7, PRTB6, PRTB5, PRTB4, PRTB3, PRTB2, PRTB1} = bus_a;
+    
+    
+    // Instantiate ALURegs
+    ALURegs alu_regs_inst (
+        .D       (data_bus),
+        .CLK     (sysclk),
+        .RST     (MCLR),
+        .STR_A1  (PRTA1),
+        .STR_A2  (PRTA2),
+        .STR_B1  (PRTA3),
+        .STR_B2  (PRTA4),
+        .Sel_A1  (PRTA5),
+        .Sel_A2  (PRTA6),
+        .Sel_B1  (PRTA7),
+        .Sel_B2  (PRTA8),
+        .BUS_A   (bus_a),
+        .BUS_B   (bus_b),
+        .REGA1   (rega1),
+        .REGA2   (rega2),
+        .REGB1   (regb1),
+        .REGB2   (regb2)
+    );
+
+endmodule

@@ -1,0 +1,76 @@
+module ECF8F24(
+    input  wire sysclk,    // 12 MHz system clock
+    input  wire MCLR,      
+    output wire DLG_LED,   
+    
+    inout  wire PRTA1,     // Data bit 0
+    inout  wire PRTA2,     // Data bit 1  
+    inout  wire PRTA3,     // Data bit 2
+    inout  wire PRTA4,     // Data bit 3
+    inout  wire PRTA5,     // Data bit 4
+    inout  wire PRTA6,     // Data bit 5
+    inout  wire PRTA7,     // Data bit 6
+    inout  wire PRTA8,     // Data bit 7
+    
+     input  wire PRTB1,       
+    input  wire PRTB2,      
+    input  wire PRTB3,  
+    
+    
+    // Data inputs (Data bus)
+    input  wire D1,        
+    input  wire D2,        
+    input  wire D3,        
+    input  wire D4,        
+    input  wire D5,        
+    input  wire D6,        
+    input  wire D7,       
+    input  wire D8,
+    
+    output wire Add1, 
+    output wire Add2, 
+    output wire Add3, 
+    output wire Add4,
+    output wire Add5, 
+    output wire Add6, 
+    output wire Add7, 
+    output wire Add8  
+);
+    // Generate 1Hz clock from 12MHz sysclk
+    wire RedCLK;
+    
+    ClockDivider clk_div (
+        .clk_in(sysclk),
+        .clk_out(RedCLK)
+    );
+    
+    // Connect 1Hz clock to debug LED
+    assign DLG_LED = RedCLK;    
+    wire [7:0] address = {D8, D7, D6, D5, D4, D3, D2, D1};  // MSB to LSB
+    
+    // Bundle the PRTA pins into an 8-bit bus
+    wire [7:0] data_bus;
+    assign data_bus[0] = PRTA1;
+    assign data_bus[1] = PRTA2;
+    assign data_bus[2] = PRTA3;
+    assign data_bus[3] = PRTA4;
+    assign data_bus[4] = PRTA5;
+    assign data_bus[5] = PRTA6;
+    assign data_bus[6] = PRTA7;
+    assign data_bus[7] = PRTA8;
+    
+
+    
+    
+    // 8-bit RAM module
+    RAM256 ram (
+        .CLK(RedCLK),
+        .MCLR(MCLR),
+        .Data(data_bus),
+        .WE(PRTB1),
+        .OE(PRTB2),
+        .StoreMAR(PRTB3)
+    );  
+    
+    assign {Add8, Add7, Add6, Add5, Add4, Add3, Add2, Add1} = data_bus;
+endmodule

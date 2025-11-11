@@ -1,0 +1,85 @@
+module ECF8BR256kED1(
+    input  wire sysclk,    // 12 MHz system clock
+    input  wire MCLR,      
+    output wire DLG_LED,   // Debug LED output (1Hz clock)
+    // Control inputs/outputs
+    input  wire PRTA1,     // StoreTreg
+    input  wire PRTA2,     // StoreTCON
+    input  wire PRTA3,     // CLR
+    input  wire PRTA4,     // TF_CLR
+    output wire PRTA5,     // 
+    output wire PRTA6,     // 
+    output wire PRTA7,     // 
+    output wire PRTA8,     // TFlag
+    input  wire PRTB1,     
+    input  wire PRTB2,     
+    input  wire PRTB3,     
+    input  wire PRTB4,     
+    input  wire PRTB5,     
+    input  wire PRTB6,     
+    input  wire PRTB7,     
+    input  wire PRTB8,     
+    // Data inputs (Data bus)
+    input  wire D1,        
+    input  wire D2,        
+    input  wire D3,        
+    input  wire D4,        
+    input  wire D5,        
+    input  wire D6,        
+    input  wire D7,       
+    input  wire D8,    
+    
+    // Address bus outputs (Lower nibble of TCON)
+    output wire Add1, Add2, Add3, Add4,
+    output wire Add5, Add6, Add7, Add8   
+);
+    // Generate 1Hz clock from 12MHz sysclk
+    wire RedCLK;
+    
+    ClockDivider clk_div (
+        .clk_in(sysclk),
+        .reset(MCLR),
+        .clk_out(RedCLK)
+    );
+    
+    // Connect 1Hz clock to debug LED
+    assign DLG_LED = RedCLK;
+    
+    // Internal connections
+    wire [7:0] DataBus = {D8, D7, D6, D5, D4, D3, D2, D1};  // MSB to LSB
+    wire [3:0] TCONLower;
+    wire INTVector;
+    wire TMR_CLR;
+    wire TChannel;
+    
+    // Output the lower nibble of TCON to address bus
+    // Upper nibble set to 0, lower nibble contains TCON[3:0]
+    assign {Add8, Add7, Add6, Add5} = 4'b0000;           // Upper nibble = 0
+    assign {Add4, Add3, Add2, Add1} = TCONLower;         // Lower nibble = TCON[3:0]
+    
+    // Debug outputs
+    assign PRTA5 = INTVector;    // Interrupt vector for debugging
+    assign PRTA6 = TChannel;     // Channel output for debugging  
+    assign PRTA7 = TMR_CLR;      // Timer clear signal for debugging
+    
+    // Instantiate the BaseTimerTCON module
+    BaseTimerTCON Timer1 (
+        .SYSCLK(sysclk),         // 12MHz for synchronization
+        .D(DataBus),             // Data bus from D1-D8
+        .StoreTreg(PRTA1),       // Store TReg from PRTA1
+        .StoreTCON(PRTA2),       // Store TCON from PRTA2
+	    .RegCLK(sysclk),	      //CLK_In can come from prescalar so need refernce for register storing
+        .CLK_IN(RedCLK),         // Use 1Hz clock as input
+        .CLR(PRTA3),             // Clear from PRTA3
+        .TF_CLR(PRTA4),          // Timer flag clear from PRTA4
+        .MCLR(MCLR),             // Master clear
+        
+        // Outputs
+        .TFlag(PRTA8),           // Timer flag to PRTA8
+        .INTVector(INTVector),   // Interrupt vector (debug)
+        .TMR_CLR(TMR_CLR),       // Timer clear signal (debug)
+        .TChannel(TChannel),     // Channel output (debug)
+        .TCONLower(TCONLower)    // Lower nibble to address bus
+    );
+    
+endmodule

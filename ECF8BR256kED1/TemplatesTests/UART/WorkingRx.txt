@@ -1,0 +1,175 @@
+module ECF8F24(
+    input  wire sysclk,    
+    input  wire MCLR,      
+    inout  wire PRTA1,     
+    inout  wire PRTA2,     
+    inout  wire PRTA3,     
+//    inout  wire PRTA4,     
+//    inout  wire PRTA5,     
+//    inout wire PRTA6,     
+//    inout wire PRTA7,     
+    inout wire PRTA8,     
+//    inout  wire PRTB1,    
+//    inout  wire PRTB2,     
+//    inout  wire PRTB3,     
+//    inout  wire PRTB4,     
+//    inout  wire PRTB5,     
+//    inout  wire PRTB6,     
+//    inout  wire PRTB7,     
+//    inout  wire PRTB8,     
+    // Data inputs (Data bus)
+    input  wire D1,        
+    input  wire D2,        
+    input  wire D3,        
+    input  wire D4,        
+    input  wire D5,        
+    input  wire D6,        
+    input  wire D7,       
+    input  wire D8,    
+    
+    output wire Add1, 
+    output wire Add2, 
+    output wire Add3, 
+    output wire Add4,
+    output wire Add5, 
+    output wire Add6, 
+    output wire Add7, 
+    output wire Add8,  
+//    output wire Add9, 
+//    output wire Add10, 
+//    output wire Add11, 
+//    output wire Add12,    
+//    output wire Add13,    
+    
+    input wire RxPin,
+    output wire TxPin,
+    
+//    output wire TCA,
+//    output wire TCB,
+    
+     
+    output wire DLG_LED  
+    
+);
+    wire RedCLK;    
+      wire [3:0] RXC;      
+      wire [3:0] RXCn;  
+    
+    ClockDivider clk_div (
+        .clk_in(sysclk),
+        .clk_out(RedCLK)
+    );
+    
+    
+    // Connect 1Hz clock to debug LED
+    assign DLG_LED = RedCLK;
+   
+    wire [7:0] DataBus = {D8, D7, D6, D5, D4, D3, D2, D1};  
+    wire [7:0] Debug = {Add8, Add7, Add6, Add5, Add4, Add3, Add2, Add1};
+//    wire [7:0] PRTA = {PRTA8, PRTA7, PRTA6, PRTA5, PRTA4, PRTA3, PRTA2, PRTA1};  
+//    wire [7:0] PRTB = {PRTB8, PRTB7, PRTB6, PRTB5, PRTB4, PRTB3, PRTB2, PRTB1};  
+
+
+    wire CLR = MCLR;
+    wire StoreBR = PRTA1;
+    wire StoreBPS = PRTA1;
+    wire CLR_RXFlag  =PRTA2;
+    wire Rx = RxPin;
+    wire CLK_IN = RedCLK;
+    wire STR_COMCON = PRTA3;
+    wire [7:0] RxBuf;
+    
+    
+
+    assign Debug = RxBuf;
+    assign PRTA8 = RX_Flag;
+
+    //=============================================================
+    //Shared
+    //=============================================================
+    reg EN_BAUD_sync;
+//    assign EN_BAUD_net = EN_BAUD_RX | EN_BAUD_TX;
+    assign EN_BAUD_net = EN_BAUD_RX;
+    always @(posedge sysclk) begin
+        EN_BAUD_sync <= EN_BAUD_net;
+    end
+    
+    wire UART_CLR = MCLR | CLR;
+
+    BaudrateGenerator baudtest(
+        .SYSCLK(sysclk),
+        .CLK_IN(CLK_IN),
+        .CLK_Sel(CLK_Sel),
+        .D(DataBus),
+        .StoreBR(StoreBR),
+        .StoreBPS(StoreBPS),
+        .CLR(UART_CLR),
+        .Enable(EN_BAUD_sync),  
+        .BaudCLK(BaudCLK),
+        .BaudCLKn(BaudCLKn)
+    );
+    wire [7:0] COMCON;
+    Register8bit ComCon(
+        .D(DataBus),    
+        .CLK(CLK_IN),       
+        .STR(STR_COMCON),        
+        .RST(UART_CLR),        
+        .Q(COMCON)
+    );
+    assign EN_RX = COMCON[0];
+    assign EN_RXINT = COMCON[1];
+    assign CLK_Sel = COMCON[2];
+    
+    //=============================================================
+    //RX
+    //=============================================================
+
+
+     RxCTRL Rxcontroller(  
+        .SYSCLK(sysclk),
+       
+        .RXINC(RXINC),          
+        .RXC_RST(RXC_RST),        
+        .RXC(RXC),        
+         
+        .EN_RX(EN_RX),           
+        .EN_RXINT(EN_RXINT),        
+        
+        .BCLK(BaudCLK),
+        .BCLK_n(BaudCLKn),
+        
+        .CLRF(CLR_RXFlag),            
+        .CLR(CLR),              
+           
+        .EN_BAUD(EN_BAUD_RX),        
+        .INTVector(INTVector),      
+        .RX_Flag(RX_Flag),        
+         
+        .Rx(Rx),              
+        
+        .RXCLK(RXCLK),   
+        .UART_CLR(UART_CLR)
+             
+    );
+    
+    
+     SIPO RXBuffer(
+        .D(Rx),         
+        .CLK(RXCLK),       
+        .CLR(UART_CLR),       
+        .RegOut(RxBuf) 
+    );
+    
+     Counter4bit RxCounter (
+        .INC(RXINC),               
+        .TC_RST(RXC_RST),             
+        .TC(RXC)            
+    );
+    
+    
+     //=============================================================
+    //RX
+    //=============================================================
+
+endmodule
+

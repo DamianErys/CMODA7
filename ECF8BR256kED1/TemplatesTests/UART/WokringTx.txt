@@ -1,0 +1,162 @@
+module ECF8F24(
+    input  wire sysclk,    // 12 MHz system clock
+    input  wire MCLR,      
+    output wire DLG_LED,   // Debug LED output (1Hz clock)
+    // Control inputs/outputs
+    inout  wire PRTA1,     // StoreTCON
+    inout  wire PRTA2,     // TF_RST (not used in this test)
+    inout  wire PRTA3,     // StoreTH and StoreTL (both connected)
+    inout  wire PRTA4,     // TF_CLR
+    inout  wire PRTA5,     // Equal (debug)
+    inout wire PRTA6,     // TChannel
+    inout wire PRTA7,     // Fset (debug)
+    inout wire PRTA8,     // TFlag
+    inout  wire PRTB1,     // Enable (now from TCON register)
+    inout  wire PRTB2,     
+    inout  wire PRTB3,     
+    inout  wire PRTB4,     
+    inout  wire PRTB5,     
+    inout  wire PRTB6,     
+    inout  wire PRTB7,     
+    inout  wire PRTB8,     
+    // Data inputs (Data bus)
+    input  wire D1,        
+    input  wire D2,        
+    input  wire D3,        
+    input  wire D4,        
+    input  wire D5,        
+    input  wire D6,        
+    input  wire D7,       
+    input  wire D8,    
+    
+    output wire Add1, 
+    output wire Add2, 
+    output wire Add3, 
+    output wire Add4,
+    output wire Add5, 
+    output wire Add6, 
+    output wire Add7, 
+    output wire Add8,  
+    output wire Add9, 
+    output wire Add10, 
+    output wire Add11, 
+    output wire Add12,    
+    output wire Add13,    
+    
+    input wire RxPin,
+    output wire TxPin,
+    
+    output wire TCA,
+    output wire TCB
+    
+);
+        wire RedCLK;    
+      wire [3:0] TXC;    
+    
+    ClockDivider clk_div (
+        .clk_in(sysclk),
+        .clk_out(RedCLK)
+    );
+    
+    
+    // Connect 1Hz clock to debug LED
+    assign DLG_LED = RedCLK;
+   
+    wire [7:0] DataBus = {D8, D7, D6, D5, D4, D3, D2, D1};  
+//    wire [7:0] DataBus = 8'd85;
+    wire [7:0] Debug = {Add8, Add7, Add6, Add5, Add4, Add3, Add2, Add1};
+    wire [7:0] PRTA = {PRTA8, PRTA7, PRTA6, PRTA5, PRTA4, PRTA3, PRTA2, PRTA1};  
+    wire [7:0] PRTB = {PRTB8, PRTB7, PRTB6, PRTB5, PRTB4, PRTB3, PRTB2, PRTB1};  
+
+
+wire EN_BAUD_net;
+
+reg EN_BAUD_sync;
+assign EN_BAUD_net = EN_BAUD_TX;
+always @(posedge sysclk) begin
+    EN_BAUD_sync <= EN_BAUD_net;
+end
+
+// instantiate with the sampled signal
+BaudrateGenerator baudtest(
+    .SYSCLK(sysclk),
+    .CLK_IN(RedCLK),
+    .CLK_Sel(PRTB1),
+    .D(8'd24),
+    .StoreBR(PRTA1),
+    .StoreBPS(PRTA1),
+    .CLR(UART_CLR),
+    .Enable(EN_BAUD_sync),  
+    .BaudCLK(BaudCLK),
+    .BaudCLKn(BaudCLKn),
+    .TimClock()
+);
+
+//Manual baud
+//assign BaudCLKn = D1;
+Counter4bit TxCounter (
+    .INC(TXINC),               
+    .TC_RST(TXC_RST),             
+    .TC(TXC)            
+);
+
+ TxCTRL TxController( 
+   .SYSCLK(sysclk),
+   
+    .TXINC(TXINC),          
+    .TXC_RST(TXC_RST),        
+    .TXC(TXC),       
+     
+    .BCLK_n(BaudCLKn),
+                
+    .CLR(MCLR),             
+       
+    .EN_BAUD(EN_BAUD_TX),          
+     
+    .Tx(Tx),
+    .SendTx(SendTx),
+    .BUFLSB(BUFLSB),    
+    .CLK_IN(RedCLK),     
+            
+    .Load(Load),    
+    .TXCLK(TXCLK),  
+    .StoreTxBuf(StoreTxBuf),
+    .UART_CLR(UART_CLR) 
+);
+
+
+ TxBuffer TxBuffer_inst(
+    .DataBus(DataBus),    // 8-bit parallel data input
+    .Shift(EN_BAUD_TX),            // Shift enable (active-high)
+    .Load(Load),             // Load parallel data enable (active-high)
+    .CLK(TXCLK),              // Clock input
+    .STR(StoreTxBuf),              // Store enable
+    .CLR(UART_CLR),              // Clear/Reset input (active-high)
+    .Serial_out(BUFLSB)        // Serial data output
+);
+
+
+
+//assign Add1 = TXC[0];
+//assign Add2 = TXC[1];
+//assign Add3 = TXC[2];
+//assign Add4 = TXC[3];
+//assign Add5 = 1'b0;
+//assign Add6 = 1'b0;
+//assign Add7 = 1'b0;
+//assign Add8 = 1'b0;
+
+//assign PRTA8 = EN_BAUD_net;
+//assign PRTA7 = EN_BAUD_TX;
+//assign PRTA6 = TXC_RST;
+ 
+assign Load = PRTA2;
+assign SendTx = PRTA3;
+
+//assign TCA = TXCLK;
+
+
+assign TxPin = Tx;
+//assign UART_CLR = MCLR;
+
+endmodule

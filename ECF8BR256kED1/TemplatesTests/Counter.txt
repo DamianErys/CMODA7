@@ -1,0 +1,36 @@
+module ECF8BR256kED1(
+    input  wire sysclk,    // 12 MHz system clock (unused in this test)
+    input  wire MCLR,      // Master clear (reset)
+    input  wire PRTA1,     // Manual clock input
+    // Counter output display pins
+    output wire PRTB1,     // Counter bit 0 (LSB)
+    output wire PRTB2,     // Counter bit 1
+    output wire PRTB3,     // Counter bit 2
+    output wire PRTB4,     // Counter bit 3
+    output wire PRTB5,     // Counter bit 4
+    output wire PRTB6,     // Counter bit 5
+    output wire PRTB7,     // Counter bit 6
+    output wire PRTB8      // Counter bit 7 (MSB)
+);
+
+    // Internal signals
+    wire [7:0] counter_value;
+
+    // Instantiate the counter
+    Counter test_counter (
+        .CLK         (PRTA1),        // Use PRTA1 as manual clock
+        .RST         (MCLR),         // Use MCLR as reset
+        .CounterValue(counter_value) // 8-bit counter output
+    );
+
+    // Connect counter bits to output pins
+    assign PRTB1 = counter_value[0];  // LSB
+    assign PRTB2 = counter_value[1];
+    assign PRTB3 = counter_value[2];
+    assign PRTB4 = counter_value[3];
+    assign PRTB5 = counter_value[4];
+    assign PRTB6 = counter_value[5];
+    assign PRTB7 = counter_value[6];
+    assign PRTB8 = counter_value[7];  // MSB
+
+endmodule

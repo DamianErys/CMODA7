@@ -1,0 +1,129 @@
+module ECF8F24(
+    input  wire sysclk,    // 12 MHz system clock
+    input  wire MCLR,      
+    output wire DLG_LED,   // Debug LED output (1Hz clock)
+    // Control inputs/outputs
+    input  wire PRTA1,     // StoreTCON
+    input  wire PRTA2,     // TF_RST (not used in this test)
+    input  wire PRTA3,     // StoreTH and StoreTL (both connected)
+    input  wire PRTA4,     // TF_CLR
+    input  wire PRTA5,     // Equal (debug)
+    output wire PRTA6,     // TChannel
+    output wire PRTA7,     // Fset (debug)
+    output wire PRTA8,     // TFlag
+    input  wire PRTB1,     // Enable (now from TCON register)
+    input  wire PRTB2,     
+    input  wire PRTB3,     
+    input  wire PRTB4,     
+    input  wire PRTB5,     
+    input  wire PRTB6,     
+    input  wire PRTB7,     
+    input  wire PRTB8,     
+    // Data inputs (Data bus)
+    input  wire D1,        
+    input  wire D2,        
+    input  wire D3,        
+    input  wire D4,        
+    input  wire D5,        
+    input  wire D6,        
+    input  wire D7,       
+    input  wire D8,    
+    
+    output wire Add1, 
+    output wire Add2, 
+    output wire Add3, 
+    output wire Add4,
+    output wire Add5, 
+    output wire Add6, 
+    output wire Add7, 
+    output wire Add8   
+);
+    // Generate 1Hz clock from 12MHz sysclk
+    wire RedCLK;
+    
+    ClockDivider clk_div (
+        .clk_in(sysclk),
+        .clk_out(RedCLK)
+    );
+    
+    
+    // Connect 1Hz clock to debug LED
+    assign DLG_LED = RedCLK;
+    
+    // Internal signal definitions
+    wire [7:0] DataBus = {D8, D7, D6, D5, D4, D3, D2, D1};  // MSB to LSB
+    
+    // PWM Timer internal signals
+    wire [7:0] TC;           // Timer counter
+    wire TC_RST;             // Timer counter reset
+    wire INC;                // Increment signal
+    wire INTVector;          // Interrupt vector
+    wire TFlag;              // Timer flag
+    wire TChannel;           // Timer channel output
+    wire TMR_CLR;            // Timer clear
+    
+    // TH and TL Registers (Timer High and Timer Low period registers)
+    wire [7:0] THReg;  // High period register
+    wire [7:0] TLReg;  // Low period register
+    wire [7:0] TPs;  // Low period register
+        // TCON Register (Timer Control Register)
+    wire [7:0] TCONReg;
+    
+    wire [3:0] TCONLow;
+    // Extract control signals from TCON register (upper nibble)
+    wire Enable      = TCONReg[7];  // Bit 7: Timer Enable
+    wire AutoReload  = TCONReg[6];  // Bit 6: Auto-reload enable
+    wire ENInterrupt = TCONReg[5];  // Bit 5: Interrupt enable
+    wire CHOutput    = TCONReg[4];  // Bit 4: Channel output enable
+    
+    wire CLK_Next;
+    wire TC_RSTPS;
+    wire INCPS;
+    wire [7:0] TC_PS;
+    
+    
+    assign TCONLow = TCONReg[3:0];
+    // Output counter value to address bus
+    assign {Add8, Add7, Add6, Add5, Add4, Add3, Add2, Add1} = TC;
+    
+    
+    // Connect outputs
+    assign PRTA8 = TFlag;     // Timer flag to PRTA8
+    
+// Connect 1Hz clock to debug LED
+    assign DLG_LED = RedCLK;
+    
+    // Internal signal definitions
+    wire [7:0] DataBus = {D8, D7, D6, D5, D4, D3, D2, D1};  // MSB to LSB
+    
+    // PWM Timer outputs
+    wire [7:0] TC;           // Timer counter (becomes address bus)
+    wire TFlag;              // Timer flag
+    wire TChannel;           // Timer channel output
+    wire TMR_CLR;            // Timer clear
+    
+    // Output counter value to address bus
+    assign {Add8, Add7, Add6, Add5, Add4, Add3, Add2, Add1} = TC;
+    
+    // Connect outputs
+    assign PRTA8 = TFlag;     // Timer flag to PRTA8
+    assign PRTA6 = TChannel;  // Timer channel to PRTA6
+    
+    // Instantiate the PWM Timer Control Module
+    PWMTCON PWM_Timer (
+        .SYSCLK(sysclk),         // System clock
+        .MCLR(MCLR),             // Master clear
+        .CLK_IN(RedCLK),
+        .DataBus(DataBus),       // Data bus input
+        .StoreTCON(PRTA1),       // Store TCON register
+        .StoreTH(PRTA2),         // Store TH register  
+        .StoreTL(PRTA3),         // Store TL register
+        .StorePS(PRTA5),         // Store Prescaler register
+        .TF_CLR(PRTA4),          // Timer flag clear
+        .TC(TC),                 // Timer counter output
+        .TFlag(TFlag),           // Timer flag output
+        .TChannel(TChannel),     // Timer channel output
+        .CLR(1'b0)
+    );
+
+endmodule
