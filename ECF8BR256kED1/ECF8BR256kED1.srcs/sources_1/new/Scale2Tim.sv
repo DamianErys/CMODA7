@@ -20,11 +20,13 @@ module Scale2TimerTCON (
     output wire CLK_NextA_dbg,
     output wire CLK_NextB_dbg
 );
-(* KEEP = "TRUE", DONT_TOUCH = "TRUE" *) wire CLK_NextA;
-(* KEEP = "TRUE", DONT_TOUCH = "TRUE" *) wire CLK_NextB;
-(* KEEP = "TRUE", DONT_TOUCH = "TRUE" *) wire CLK_NextAL;
-(* KEEP = "TRUE", DONT_TOUCH = "TRUE" *) wire CLK_NextBL;
+     wire CLK_NextA;
+     wire CLK_NextB;
+     wire CLK_NextAL;
+     wire CLK_NextBL;
 
+    assign CLK_NextA_dbg = CLK_NextA;
+    assign CLK_NextB_dbg = CLK_NextB;
     // --- internal wires added / clarified ---
     wire TMR_CLR;
 
@@ -55,8 +57,6 @@ module Scale2TimerTCON (
 
     assign TCONLower = TCON[3:0];
 
-    // Keep PS_TCA/PS_TCB/PS_INCA visible to top-level if you want,
-    // but drive them from internal wires (avoid accidental port-direction bugs).
     wire [7:0] ps_tca_int;
     wire [7:0] ps_tcb_int;
     wire ps_inca_int;
@@ -64,7 +64,23 @@ module Scale2TimerTCON (
     assign PS_TCA = ps_tca_int;
     assign PS_TCB = ps_tcb_int;
     assign PS_INCA = ps_inca_int;
-
+    
+    //For some reason unknown to man and God does it not want to run without adding:
+    //Oscillating DFFs with no function usage to force the clock to stay
+    //Hours wasted with "normal" methods: 14
+    wire ClkABuffern;
+    DFF ClkABuffer(
+        .D(ClkABuffern),
+        .CLK(CLK_NextA_dbg),
+        .Qn(ClkABuffern)
+    );
+    wire ClkBBuffern;
+    DFF ClkBBuffer(
+        .D(ClkBBuffern),
+        .CLK(CLK_NextB_dbg),
+        .Qn(ClkBBuffern)
+    );
+    
     Register8bit PS_Register (
         .D   (D),
         .CLK (CLK_IN),
@@ -73,7 +89,7 @@ module Scale2TimerTCON (
         .Q   (PSValA),
         .Qn  ()
     );
-(* DONT_TOUCH = "TRUE" *)
+   
     PSCTRL PS_Control (
         .SYSCLK(SYSCLK),
         .TReg(PSValA),
@@ -103,16 +119,13 @@ module Scale2TimerTCON (
         .Qn  ()
     );
 
-(* DONT_TOUCH = "TRUE" *)
     UnitDelay ClkADel (
         .sysclk(SYSCLK),
         .Din(CLK_NextA),
         .Dout(CLK_NextAL)   // now declared
     );
     
-    assign CLK_NextA_dbg = CLK_NextA;
     
-(* DONT_TOUCH = "TRUE" *)
     PSCTRL PSB_Control (
         .SYSCLK(SYSCLK),
         .TReg(PSValB),
@@ -141,7 +154,6 @@ module Scale2TimerTCON (
         .Q   (TReg),
         .Qn  ()
     );
-(* KEEP = "TRUE", DONT_TOUCH = "TRUE" *)
     Register8bit TCON_Register (
         .D   (D),
         .CLK (CLK_IN),
@@ -150,7 +162,6 @@ module Scale2TimerTCON (
         .Q   (TCON),
         .Qn  ()
     );
-(* KEEP = "TRUE", DONT_TOUCH = "TRUE" *)
     UnitDelay ClkBDel (
         .sysclk(SYSCLK),
         .Din(CLK_NextB),
@@ -158,8 +169,6 @@ module Scale2TimerTCON (
     );
     
     
-    assign CLK_NextB_dbg = CLK_NextB;
-(* KEEP = "TRUE", DONT_TOUCH = "TRUE" *)
     TMRCTRL TMR_Control (
         .SYSCLK(SYSCLK),
         .CLK_IN(CLK_NextBL),

@@ -469,8 +469,8 @@ module AddressableRegion(
         .TFlag(T3Flag),           // Timer flag output
         .INTVector(T3_int),       // Interrupt vector output
         .TCONLower(T34CONLower),
-        .CLK_NextA_dbg(Debuglines[0]),
-        .CLK_NextB_dbg(Debuglines[1])
+        .CLK_NextA_dbg(),
+        .CLK_NextB_dbg()
     );
     
     
