@@ -1,5 +1,4 @@
 (* keep_hierarchy = "yes", dont_touch = "true" *)
-
 module ECF8F24(
     input  wire sysclk,    // 12 MHz system clock
     output wire uart_rxd_out,

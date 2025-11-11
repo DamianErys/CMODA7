@@ -1,3 +1,4 @@
+
 module Scale2TimerTCON (
 
     input  wire SYSCLK,
@@ -16,32 +17,28 @@ module Scale2TimerTCON (
     output wire INTVector,
     output wire TChannel,
     output wire [3:0] TCONLower,
-
-    output wire CLK_NextA,
-    output wire CLK_NextB,
-    output wire EqualA,
-    output wire EqualB,
-    output wire [7:0] PS_TCA,
-    output wire [7:0] PS_TCB,
-
-
     output wire CLK_NextA_dbg,
     output wire CLK_NextB_dbg
 );
+     wire CLK_NextA;
+     wire CLK_NextB;
+     wire CLK_NextAL;
+     wire CLK_NextBL;
 
+    assign CLK_NextA_dbg = CLK_NextA;
+    assign CLK_NextB_dbg = CLK_NextB;
     // --- internal wires added / clarified ---
     wire TMR_CLR;
 
     // Prescaler A internal values
     wire [7:0] PSValA;
     wire PS_TC_RSTA;
-    wire CLK_NextAL;        // <--- explicit declaration
 
+     wire PS_INCA;
     // Prescaler B internal values
     wire [7:0] PSValB;
     wire PS_TC_RSTB;
     wire PS_INCB;
-    wire CLK_NextBL;        // <--- explicit declaration
 
     // Timer register / counter wires
     wire [7:0] TReg;
@@ -60,8 +57,6 @@ module Scale2TimerTCON (
 
     assign TCONLower = TCON[3:0];
 
-    // Keep PS_TCA/PS_TCB/PS_INCA visible to top-level if you want,
-    // but drive them from internal wires (avoid accidental port-direction bugs).
     wire [7:0] ps_tca_int;
     wire [7:0] ps_tcb_int;
     wire ps_inca_int;
@@ -69,7 +64,23 @@ module Scale2TimerTCON (
     assign PS_TCA = ps_tca_int;
     assign PS_TCB = ps_tcb_int;
     assign PS_INCA = ps_inca_int;
-
+    
+    //For some reason unknown to man and God does it not want to run without adding:
+    //Oscillating DFFs with no function usage to force the clock to stay
+    //Hours wasted with "normal" methods: 14
+    wire ClkABuffern;
+    DFF ClkABuffer(
+        .D(ClkABuffern),
+        .CLK(CLK_NextA_dbg),
+        .Qn(ClkABuffern)
+    );
+    wire ClkBBuffern;
+    DFF ClkBBuffer(
+        .D(ClkBBuffern),
+        .CLK(CLK_NextB_dbg),
+        .Qn(ClkBBuffern)
+    );
+    
     Register8bit PS_Register (
         .D   (D),
         .CLK (CLK_IN),
@@ -78,7 +89,7 @@ module Scale2TimerTCON (
         .Q   (PSValA),
         .Qn  ()
     );
-
+   
     PSCTRL PS_Control (
         .SYSCLK(SYSCLK),
         .TReg(PSValA),
@@ -113,7 +124,8 @@ module Scale2TimerTCON (
         .Din(CLK_NextA),
         .Dout(CLK_NextAL)   // now declared
     );
-
+    
+    
     PSCTRL PSB_Control (
         .SYSCLK(SYSCLK),
         .TReg(PSValB),
@@ -142,7 +154,6 @@ module Scale2TimerTCON (
         .Q   (TReg),
         .Qn  ()
     );
-
     Register8bit TCON_Register (
         .D   (D),
         .CLK (CLK_IN),
@@ -151,13 +162,13 @@ module Scale2TimerTCON (
         .Q   (TCON),
         .Qn  ()
     );
-
     UnitDelay ClkBDel (
         .sysclk(SYSCLK),
         .Din(CLK_NextB),
         .Dout(CLK_NextBL)   // now declared
     );
-
+    
+    
     TMRCTRL TMR_Control (
         .SYSCLK(SYSCLK),
         .CLK_IN(CLK_NextBL),
