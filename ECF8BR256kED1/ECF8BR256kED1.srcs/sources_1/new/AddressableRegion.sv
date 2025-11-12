@@ -391,61 +391,65 @@ module AddressableRegion(
     //Timers 
     //=============================================
     
-
+   
+   wire [7:0] TCON12Reg;
+    Register8bit TCON_Register (
+        .D(DataBus),
+        .CLK(SYSCLK),
+        .STR(TCON12),
+        .RST(MCLR),
+        .Q(TCON12Reg),
+        .Qn()
+    );
     
-    wire [3:0] T12CONLower;
-     PWMTCONTCON Tim1(
-        // System signals
-        .SYSCLK(SYSCLK),          // System clock
-        .MCLR(MCLR),            // Master clear
+    
+     PWMModule Tim1(
+        //System inputs
+        .SYSCLK(SYSCLK),       
+        .MCLR(MCLR),         
         .CLK_IN(CLK_IN),
-        
-        // Data bus
-        .DataBus(DataBus),   // 8-bit data input bus
-        
-        // Control inputs
-        .StoreTCON(TCON12),       // Store TCON register
-        .StoreTH(T1_TH),         // Store TH register
-        .StoreTL(T1_TL),         // Store TL register
-        .StorePS(T1_PS),         // Store Prescaler register
-        .TF_CLR(T1_F),          // Timer flag clear
+        .DataBus(DataBus),   
+    
+        //Timer Setup
+        .StoreTH(T1_TH),        
+        .StoreTL(T1_TL),         
+        .StorePS(T1_PS),         
+        .TF_CLR(T1_F),          
         .CLR(T1_CLR),
+        .TCONBits(TCON12Reg[7:4]), 
+        
         
         // Outputs
-        .TFlag(T1Flag),           // Timer flag output
-        .INTVector(T1_int),       // Interrupt vector output
-        .TChannel(TCA),        // Channel output
-        .TCONLower(T12CONLower), // Lower nibble of TCON for another timer
+        .TFlag(T1Flag),           
+        .INTVector(T1_int),       
+        .TChannel(TCA)        
+             
+    );
+    
+      PWMModule Tim2(
+        //System inputs
+        .SYSCLK(SYSCLK),       
+        .MCLR(MCLR),         
+        .CLK_IN(CLK_IN),
+        .DataBus(DataBus),   
+    
+        //Timer Setup
+        .StoreTH(T2_TH),        
+        .StoreTL(T2_TL),         
+        .StorePS(T2_PS),         
+        .TF_CLR(T2_F),          
+        .CLR(T2_CLR),
+        .TCONBits(TCON12Reg[3:0]), 
         
         
-        .TC(Tim1Counter),
-        .TC_PS(TC_PS)
+        // Outputs
+        .TFlag(T2Flag),           
+        .INTVector(T2_int),       
+        .TChannel(TCB)        
+             
     );
     
    
-    
-    PWMTCONEXTCON Tim2 (
-        // System signals
-        .SYSCLK(SYSCLK),          // System clock
-        .MCLR(MCLR),            // Master clear
-        .CLK_IN(CLK_IN),
-        
-        // Data bus
-        .DataBus(DataBus),   // 8-bit data input bus
-        
-        // Control inputs
-        .StoreTH(T2_TH),         // Store TH register
-        .StoreTL(T2_TL),         // Store TL register
-        .StorePS(T2_PS),         // Store Prescaler register
-        .TF_CLR(T2_F),          // Timer flag clear
-        .CLR(T2_CLR),
-        
-        // Outputs
-        .TFlag(T2Flag),           // Timer flag output
-        .INTVector(T2_int),       // Interrupt vector output
-        .TChannel(TCB),        // Channel output
-        .TCONLower(T12CONLower) // Lower nibble of TCON for another timer
-    );
     
     wire [3:0] T34CONLower;
     
