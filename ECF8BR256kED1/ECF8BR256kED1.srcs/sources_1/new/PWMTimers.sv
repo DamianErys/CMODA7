@@ -154,14 +154,7 @@ module PWMTCONTCON (
         .TC(TC_PS)
     );
     
-    
-        //Force CLK_Next keep
-        wire PSBuffern;
-    DFF ClkPSBuffer(
-        .D(PSBuffern),
-        .CLK(CLK_Next),
-        .Qn(PSBuffern)
-    );
+   
 
 endmodule
 
@@ -181,37 +174,35 @@ module PWMTCONEXTCON (
     input  wire StorePS,         // Store Prescaler register
     input  wire TF_CLR,          // Timer flag clear
     input  wire CLR,
+    input wire [3:0] TCONLower, // Lower nibble of TCON for another timer   
     
     // Outputs
     output wire [7:0] TC,        // Timer counter output (address bus)
     output wire TFlag,           // Timer flag
     output wire TChannel,        // Timer channel output
     output wire INTVector,
-    input wire [3:0] TCONLower // Lower nibble of TCON for another timer
+    
+    //debug
+    output wire [7:0] TC_PS,            // Prescaler counter
+    output wire CLK_Next               // Clock from prescaler
 );
 
     wire TMR_CLR;          // Timer clear signal
-    // Internal registers
-    wire [7:0] TCONReg;          // Timer Control Register
-    wire [7:0] THReg;            // Timer High Period Register
-    wire [7:0] TLReg;            // Timer Low Period Register
-    wire [7:0] TPs;              // Prescaler Register
-    
+   
     // Extract control signals from TCON register
     wire Enable      = TCONLower[3];  // Bit 7: Timer Enable
-    wire AutoReload  = TCONLower[2];  // Bit 6: Auto-reload enable
+    
     wire ENInterrupt = TCONLower[1];  // Bit 5: Interrupt enable
     wire CHOutput    = TCONLower[0];  // Bit 4: Channel output enable
     
     // Internal PWM control signals
     wire TC_RST;                 // Timer counter reset
     wire INC;                    // Timer increment signal
-    wire CLK_Next;               // Clock from prescaler
     
     // Prescaler signals
-    wire [7:0] TC_PS;            // Prescaler counter
     wire TC_RSTPS;               // Prescaler counter reset
     wire INCPS;                  // Prescaler increment
+   
     
     // TH Register (Timer High Period)
     Register8bit TH_Register (
@@ -252,10 +243,9 @@ module PWMTCONEXTCON (
         .StoreTHReg(StoreTH),
         .StoreTLReg(StoreTL),
         .TF_CLR(TF_CLR),
-        .CLR(CLR),              // Assuming CLR was meant to be tied to ground
+        .CLR(CLR),             
         .MCLR(MCLR),
         
-        // Debug outputs (unused)
         .TReg(),
         .Equal(),
         
@@ -285,6 +275,7 @@ module PWMTCONEXTCON (
         .TC(TC)
     );
     
+    
     // Prescaler Control Module
     PSCTRL PS_Control (
         .SYSCLK(SYSCLK),
@@ -307,14 +298,6 @@ module PWMTCONEXTCON (
         .TC(TC_PS)
     );
     
-    //Force CLK_Next keep
-        wire PSBuffern;
-    DFF ClkPSBuffer(
-        .D(PSBuffern),
-        .CLK(CLK_Next),
-        .Qn(PSBuffern)
-    );
-    
-    
+   
 
 endmodule
