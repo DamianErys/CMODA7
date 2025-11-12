@@ -465,6 +465,7 @@ module AddressableRegion(
         .TF_CLR(T3_F),          // Timer flag clear
         
         // Timer outputs
+        // Timer outputs
         // Outputs
         .TFlag(T3Flag),           // Timer flag output
         .INTVector(T3_int),       // Interrupt vector output

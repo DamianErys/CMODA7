@@ -114,14 +114,6 @@ module ECF8F24(
     );
 
     
-//    assign PRTA8 = CLK8;
-//    assign PRTA7 = CLK7;
-//    assign PRTA6 = CLK6;
-//    assign PRTA5 = CLK5;
-//    assign PRTA4 = CLK4;
-//    assign PRTA3 = CLK3;
-//    assign PRTA2 = CLK2;
-//    assign PRTA1 = USR_Flag;
 
 
     
@@ -261,7 +253,7 @@ module ECF8F24(
     
     
     //GPIO
-//    .PORTA(PRTA),
+    .PORTA(PRTA),
     .PORTB(PRTB),
     .TCA(TCA),
     .TCB(TCB),
