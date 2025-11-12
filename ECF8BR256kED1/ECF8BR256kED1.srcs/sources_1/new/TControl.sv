@@ -162,6 +162,14 @@ module PWMCTRL (
         .Q(TFlag)
     );
     
+        //Force CLK_Next keep
+        wire FlipPointBuffern;
+    DFF FlipPointBuffer(
+        .D(FlipPointBuffern),
+        .CLK(FlipPoint),
+        .Qn(FlipPointBuffern)
+    );
+    
     assign INTVector = ENInterrupt & TFlag;
 
     wire PWMLatchn;

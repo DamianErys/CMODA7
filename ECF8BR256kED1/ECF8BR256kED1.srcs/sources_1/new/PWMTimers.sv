@@ -99,10 +99,9 @@ module PWMTCONTCON (
         .StoreTHReg(StoreTH),
         .StoreTLReg(StoreTL),
         .TF_CLR(TF_CLR),
-        .CLR(CLR),              // Assuming CLR was meant to be tied to ground
+        .CLR(CLR),             
         .MCLR(MCLR),
         
-        // Debug outputs (unused)
         .TReg(),
         .Equal(),
         
@@ -132,6 +131,7 @@ module PWMTCONTCON (
         .TC(TC)
     );
     
+    
     // Prescaler Control Module
     PSCTRL PS_Control (
         .SYSCLK(SYSCLK),
@@ -152,6 +152,15 @@ module PWMTCONTCON (
         .INC(INCPS),
         .TC_RST(TC_RSTPS),
         .TC(TC_PS)
+    );
+    
+    
+        //Force CLK_Next keep
+        wire PSBuffern;
+    DFF ClkPSBuffer(
+        .D(PSBuffern),
+        .CLK(CLK_Next),
+        .Qn(PSBuffern)
     );
 
 endmodule
@@ -297,5 +306,15 @@ module PWMTCONEXTCON (
         .TC_RST(TC_RSTPS),
         .TC(TC_PS)
     );
+    
+    //Force CLK_Next keep
+        wire PSBuffern;
+    DFF ClkPSBuffer(
+        .D(PSBuffern),
+        .CLK(CLK_Next),
+        .Qn(PSBuffern)
+    );
+    
+    
 
 endmodule
