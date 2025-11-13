@@ -393,7 +393,7 @@ module AddressableRegion(
     
    
    wire [7:0] TCON12Reg;
-    Register8bit TCON_Register (
+    Register8bit TCON12_Register (
         .D(DataBus),
         .CLK(SYSCLK),
         .STR(TCON12),
@@ -451,9 +451,17 @@ module AddressableRegion(
     
    
     
-    wire [3:0] T34CONLower;
-    
-    Scale2TimerTCON Tim3 (
+   wire [7:0] TCON34Reg;
+    Register8bit TCON34_Register (
+        .D(DataBus),
+        .CLK(SYSCLK),
+        .STR(TCON34),
+        .RST(MCLR),
+        .Q(TCON34Reg),
+        .Qn()
+    );
+       
+    Scale2Timer Tim3 (
 
         .SYSCLK(SYSCLK),          // System clock
         .MCLR(MCLR),            // Master clear
@@ -462,7 +470,6 @@ module AddressableRegion(
         // Data and control inputs
         .D(DataBus),   // 8-bit data input bus
         .StoreTreg(T3_REG),       // Store signal for TReg register
-        .StoreTCON(TCON34),       // Store signal for TCON register
         .StoreTPsA(T3_PSA),        // Store signal for prescaler register
         .StoreTPsB(T3_PSB),        // Store signal for prescaler register
         .CLR(T3_CLR),             // Clear signal
@@ -473,17 +480,16 @@ module AddressableRegion(
         // Outputs
         .TFlag(T3Flag),           // Timer flag output
         .INTVector(T3_int),       // Interrupt vector output
-        .TCONLower(T34CONLower),
+        .TCONBits(TCON34Reg[7:4]),
         .CLK_NextA_dbg(),
         .CLK_NextB_dbg()
     );
     
     
+     
     
     
-    
-    
-    Scale1TimerEXTCON T4 (
+    Scale1Timer Tim4 (
         // System signals
         .SYSCLK(SYSCLK),          // System clock
         .MCLR(MCLR),            // Master clear
@@ -499,7 +505,7 @@ module AddressableRegion(
         // Timer outputs
         .TFlag(T4Flag),           // Timer flag output
         .INTVector(T4_int),       // Interrupt vector output
-        .TCONLower(T34CONLower) // Lower nibble of TCON for another timer
+        .TCONBits(TCON34Reg[3:0]) // Lower nibble of TCON for another timer
         
     );
     
