@@ -284,11 +284,11 @@ module AddressableRegion(
         .out(COMSWriteSelected)    
     );   
     
-    wire BR = COMSWriteSelected[0];
-    wire BRPS = COMSWriteSelected[1];
-    wire CLR = COMSWriteSelected[2];
-    wire TxBuf = COMSWriteSelected[3];
-    wire Send = COMSWriteSelected[4];
+    wire UART1_BR = COMSWriteSelected[0];
+    wire UART1_BRPS = COMSWriteSelected[1];
+    wire UART1_CLR = COMSWriteSelected[2];
+    wire UART1_TxBuf = COMSWriteSelected[3];
+    wire UART1_Send = COMSWriteSelected[4];
     
     
         //=============================================
@@ -714,7 +714,7 @@ module AddressableRegion(
         
         uart_rx u_rx (
             .clk      (SYSCLK),
-            .reset_n  (reset_n),
+            .reset_n  (reset_n | UART1_CLR),
             .uart_rxd (Rx),   
             .RXBUF    (RxBufPass),
             .RxFlag   (RX_Flag),
@@ -727,33 +727,31 @@ module AddressableRegion(
             .out(DataBus)     // Output bus (tri-state)
         );
              
-    wire tx_trigger_pulse;
-    wire [7:0] tx_data_stable;
     
-    TriggerSync trigger_sync_inst (
-        .sysclk(SYSCLK),
-        .reset_n(reset_n),
-        .send_in(Send & CLK_IN),
-        .tx_idle(TX_Idle_Flag),
-        .data_in(TxBufferVal),        // Potentially unstable data
-        .trigger_out(tx_trigger_pulse),
-        .data_out(tx_data_stable)     // Stable, latched data
-    );
-    
-    uart_tx uart_tx_inst (
-        .clk(SYSCLK),
-        .reset_n(reset_n),
-        .trigger_i(tx_trigger_pulse),
-        .uart_txd(Tx),
-        .ToSend(tx_data_stable),      // Use latched data!
-        .idle_o(TX_Idle_Flag)
-    );
+        wire UART1_Send_Pulse;
+        
+        UART1_Send_PulseGen pulse_gen_inst (
+            .SYSCLK(SYSCLK),
+            .MCLR(MCLR),
+            .UART1_Send(UART1_Send),
+            .UART1_Send_Pulse(UART1_Send_Pulse)
+        );
+        
+        uart_tx uart_tx_inst (
+            .clk(SYSCLK),
+            .reset_n(reset_n | UART1_CLR),
+            .trigger_i(UART1_Send_Pulse & TX_Idle_Flag),
+            .uart_txd(Tx),
+            .ToSend(TxBufferVal),
+            .idle_o(TX_Idle_Flag)
+        );
+
         
         
          Register8bit TxBuffer (
             .D(DataBus),    // 8-bit data input bus
             .CLK(CLK_IN),        // Clock input
-            .STR(TxBuf),        // Store enable
+            .STR(UART1_TxBuf),        // Store enable
             .RST(MCLR),        // Asynchronous reset
             .Q(TxBufferVal)
         );      

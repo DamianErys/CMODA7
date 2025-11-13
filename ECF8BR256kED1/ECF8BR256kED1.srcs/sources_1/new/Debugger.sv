@@ -457,92 +457,41 @@ module SerialDebug(
 endmodule
 
 
-module TriggerSync (
-    input  wire sysclk,           // Fast clock (12 MHz)
-    input  wire reset_n,
-    input  wire send_in,          // Slow send signal (from Send & CLK_IN)
-    input  wire tx_idle,          // From uart_tx idle_o
-    input  wire [7:0] data_in,    // Data from slow clock domain
-    output reg  trigger_out,      // Single SYSCLK pulse
-    output reg  [7:0] data_out    // Stable data for TX
+
+module UART1_Send_PulseGen (
+    input  wire SYSCLK,       // system clock
+    input  wire MCLR,         // async reset
+    input  wire UART1_Send,   // raw signal (can be long)
+    output reg  UART1_Send_Pulse // 1-cycle pulse on rising edge
 );
 
-    typedef enum logic [1:0] {
-        IDLE        = 2'd0,
-        TRIGGERED   = 2'd1,
-        WAIT_IDLE   = 2'd2
-    } state_t;
-    
-    state_t state, next_state;
-    
-    // Synchronize send_in to sysclk domain
-    (* ASYNC_REG = "TRUE" *) reg [2:0] send_sync;
-    always @(posedge sysclk or negedge reset_n) begin
-        if (!reset_n)
-            send_sync <= 3'b000;
-        else
-            send_sync <= {send_sync[1:0], send_in};
-    end
-    
-    wire send_stable = send_sync[2];
-    
-    // Detect rising edge of send
-    reg send_prev;
-    always @(posedge sysclk or negedge reset_n) begin
-        if (!reset_n)
-            send_prev <= 0;
-        else
-            send_prev <= send_stable;
-    end
-    
-    wire send_rising = send_stable & ~send_prev;
-    
-    // FSM: Next state logic
-    always @(*) begin
-        next_state = state;
-        case (state)
-            IDLE: begin
-                if (send_rising)
-                    next_state = TRIGGERED;
+    // synchroniser + edge detector
+    reg UART1_Send_sync1, UART1_Send_sync2;
+    reg hold_active; // prevents re-trigger until UART1_Send falls
+
+    always @(posedge SYSCLK or posedge MCLR) begin
+        if (MCLR) begin
+            UART1_Send_sync1 <= 0;
+            UART1_Send_sync2 <= 0;
+            UART1_Send_Pulse <= 0;
+            hold_active <= 0;
+        end else begin
+            // synchronise the async input
+            UART1_Send_sync1 <= UART1_Send;
+            UART1_Send_sync2 <= UART1_Send_sync1;
+
+            // detect rising edge, only if not holding
+            if (~UART1_Send_sync2 & UART1_Send_sync1 & ~hold_active) begin
+                UART1_Send_Pulse <= 1;
+                hold_active <= 1;
+            end else begin
+                UART1_Send_Pulse <= 0;
             end
-            
-            TRIGGERED: begin
-                if (!tx_idle)
-                    next_state = WAIT_IDLE;
-            end
-            
-            WAIT_IDLE: begin
-                if (tx_idle)
-                    next_state = IDLE;
-            end
-            
-            default: next_state = IDLE;
-        endcase
-    end
-    
-    // State register
-    always @(posedge sysclk or negedge reset_n) begin
-        if (!reset_n)
-            state <= IDLE;
-        else
-            state <= next_state;
-    end
-    
-    // CRITICAL: Capture data_in when send_rising detected
-    // This ensures stable data throughout transmission
-    always @(posedge sysclk or negedge reset_n) begin
-        if (!reset_n)
-            data_out <= 8'h00;
-        else if (send_rising)
-            data_out <= data_in;  // Latch data at trigger moment
-    end
-    
-    // Output trigger pulse
-    always @(posedge sysclk or negedge reset_n) begin
-        if (!reset_n)
-            trigger_out <= 0;
-        else
-            trigger_out <= (state == IDLE && next_state == TRIGGERED);
+
+            // release hold when UART1_Send goes low again
+            if (~UART1_Send_sync1)
+                hold_active <= 0;
+        end
     end
 
 endmodule
