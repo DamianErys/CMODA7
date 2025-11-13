@@ -727,6 +727,12 @@ module AddressableRegion(
             .out(DataBus)     // Output bus (tri-state)
         );
              
+             
+    assign DataBusReversed = {
+        DataBus[0], DataBus[1], DataBus[2], DataBus[3],
+        DataBus[4], DataBus[5], DataBus[6], DataBus[7]
+    };
+
             TxDriver uart_txDriver_inst (
             .D(DataBus),    // 8-bit data input bus
             .clk(SYSCLK),

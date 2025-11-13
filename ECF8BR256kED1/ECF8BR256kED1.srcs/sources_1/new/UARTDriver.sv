@@ -378,38 +378,42 @@ module TxDriver (
     reg store_prev;
     wire store_edge = StoreTxBuf & ~store_prev;
     
+    // add:
+    reg [3:0] bits_left;
+
     always @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
-            shift_reg    <= 11'b11111111111;  // All 1s (idle state)
+            shift_reg <= 11'b11111111111; // All 1s (idle state)
             transmitting <= 0;
-            uart_txd     <= 1'b1;
-            store_prev   <= 0;
+            uart_txd <= 1'b1;
+            store_prev <= 0;
+            bits_left <= 0;
         end else begin
             store_prev <= StoreTxBuf;
-            
+
             // Load new frame on rising edge of StoreTxBuf when idle
             if (store_edge && !transmitting) begin
-                // Load: [10:9]=11 (buffer), [8]=0 (start), [7:0]=data
-                shift_reg    <= {2'b11, 1'b0, D};
+                // Correct load: LSB = start bit (0), then data LSB..MSB, then stop/idle '1's
+                shift_reg <= {2'b11, D, 1'b0}; // 11 bits: [10]=1,[9]=1,[8]=D7,...,[1]=D0,[0]=0
                 transmitting <= 1;
-                uart_txd     <= 1'b1;  // Still high for one more cycle
-            end 
+                bits_left <= 11;
+                uart_txd <= 1'b1; // keep idle until first baud tick
+            end
             // Shift out data on baud tick
             else if (transmitting && baud_tick) begin
-                uart_txd <= shift_reg[0];  // Output LSB
-                shift_reg <= {1'b1, shift_reg[10:1]};  // Shift right, fill with '1' (stop/idle)
-                
-                // Check if we've shifted out the entire frame
-                // After 11 shifts, we're back to all 1s (idle)
-                if (shift_reg[10:0] == 11'b11111111110) begin  // Last data bit being sent
-                    transmitting <= 0;
+                uart_txd <= shift_reg[0]; // Output LSB (start first)
+                shift_reg <= {1'b1, shift_reg[10:1]}; // Shift right, fill with '1' (stop/idle)
+                bits_left <= bits_left - 1;
+                if (bits_left == 1) begin
+                    transmitting <= 0; // we've just sent the last bit
                 end
             end
-            // When idle and not shifting, just output the LSB (should be '1')
             else if (!transmitting) begin
-                uart_txd <= shift_reg[0];  // Continuously output '1' when idle
+                uart_txd <= shift_reg[0]; // Continuously output '1' when idle
             end
         end
     end
+
+
 
 endmodule
