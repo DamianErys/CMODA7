@@ -727,34 +727,24 @@ module AddressableRegion(
             .out(DataBus)     // Output bus (tri-state)
         );
              
-    
-        wire UART1_Send_Pulse;
-        
-        UART1_Send_PulseGen pulse_gen_inst (
-            .SYSCLK(SYSCLK),
-            .MCLR(MCLR),
-            .UART1_Send(UART1_Send),
-            .UART1_Send_Pulse(UART1_Send_Pulse)
-        );
-        
-        uart_tx uart_tx_inst (
+            TxDriver uart_txDriver_inst (
+            .D(DataBus),    // 8-bit data input bus
             .clk(SYSCLK),
             .reset_n(reset_n | UART1_CLR),
-            .trigger_i(UART1_Send_Pulse & TX_Idle_Flag),
+            .StoreTxBuf(UART1_TxBuf & CLK_IN),
             .uart_txd(Tx),
-            .ToSend(TxBufferVal),
             .idle_o(TX_Idle_Flag)
         );
 
+
+
+
         
+    
+       
+
         
-         Register8bit TxBuffer (
-            .D(DataBus),    // 8-bit data input bus
-            .CLK(CLK_IN),        // Clock input
-            .STR(UART1_TxBuf),        // Store enable
-            .RST(MCLR),        // Asynchronous reset
-            .Q(TxBufferVal)
-        );      
+         
     
    
    

@@ -458,40 +458,4 @@ endmodule
 
 
 
-module UART1_Send_PulseGen (
-    input  wire SYSCLK,       // system clock
-    input  wire MCLR,         // async reset
-    input  wire UART1_Send,   // raw signal (can be long)
-    output reg  UART1_Send_Pulse // 1-cycle pulse on rising edge
-);
 
-    // synchroniser + edge detector
-    reg UART1_Send_sync1, UART1_Send_sync2;
-    reg hold_active; // prevents re-trigger until UART1_Send falls
-
-    always @(posedge SYSCLK or posedge MCLR) begin
-        if (MCLR) begin
-            UART1_Send_sync1 <= 0;
-            UART1_Send_sync2 <= 0;
-            UART1_Send_Pulse <= 0;
-            hold_active <= 0;
-        end else begin
-            // synchronise the async input
-            UART1_Send_sync1 <= UART1_Send;
-            UART1_Send_sync2 <= UART1_Send_sync1;
-
-            // detect rising edge, only if not holding
-            if (~UART1_Send_sync2 & UART1_Send_sync1 & ~hold_active) begin
-                UART1_Send_Pulse <= 1;
-                hold_active <= 1;
-            end else begin
-                UART1_Send_Pulse <= 0;
-            end
-
-            // release hold when UART1_Send goes low again
-            if (~UART1_Send_sync1)
-                hold_active <= 0;
-        end
-    end
-
-endmodule
