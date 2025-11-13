@@ -720,6 +720,25 @@ module AddressableRegion(
             .Enable(RX_BUF), // Enable signal (active-high)
             .out(DataBus)     // Output bus (tri-state)
         );
+             
+        wire tx_trigger_pulse;
+        
+        TriggerSync trigger_sync_inst (
+            .sysclk(SYSCLK),
+            .reset_n(reset_n),
+            .send_in(Send & CLK_IN),      // Your slow send signal
+            .tx_idle(TX_Idle_Flag),       // From uart_tx
+            .trigger_out(tx_trigger_pulse) // Single SYSCLK pulse
+        );
+        
+        uart_tx uart_tx_inst (
+            .clk(SYSCLK),
+            .reset_n(reset_n),
+            .trigger_i(tx_trigger_pulse),  // Clean single pulse!
+            .uart_txd(Tx),
+            .ToSend(TxBufferVal),
+            .idle_o(TX_Idle_Flag)
+        );
         
         
          Register8bit TxBuffer (
@@ -730,14 +749,6 @@ module AddressableRegion(
             .Q(TxBufferVal)
         );      
     
-        uart_tx uart_tx_inst (
-        .clk(SYSCLK),
-        .reset_n(reset_n),
-        .trigger_i(Send & CLK_IN),
-        .uart_txd(Tx),
-        .ToSend(TxBufferVal),
-        .idle_o(TX_Idle_Flag)
-    );
    
    
         

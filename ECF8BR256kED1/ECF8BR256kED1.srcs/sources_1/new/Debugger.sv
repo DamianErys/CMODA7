@@ -455,3 +455,85 @@ module SerialDebug(
         .Q(CLK8)
     );
 endmodule
+
+
+module TriggerSync (
+    input  wire sysclk,           // Fast clock (12 MHz)
+    input  wire reset_n,
+    input  wire send_in,          // Slow send signal (from Send & CLK_IN)
+    input  wire tx_idle,          // From uart_tx idle_o
+    output reg  trigger_out       // Single SYSCLK pulse
+);
+
+    typedef enum logic [1:0] {
+        IDLE        = 2'd0,
+        TRIGGERED   = 2'd1,
+        WAIT_IDLE   = 2'd2
+    } state_t;
+    
+    state_t state, next_state;
+    
+    // Synchronize send_in to sysclk domain
+    (* ASYNC_REG = "TRUE" *) reg [2:0] send_sync;
+    always @(posedge sysclk or negedge reset_n) begin
+        if (!reset_n)
+            send_sync <= 3'b000;
+        else
+            send_sync <= {send_sync[1:0], send_in};
+    end
+    
+    wire send_stable = send_sync[2];
+    
+    // Detect rising edge of send
+    reg send_prev;
+    always @(posedge sysclk or negedge reset_n) begin
+        if (!reset_n)
+            send_prev <= 0;
+        else
+            send_prev <= send_stable;
+    end
+    
+    wire send_rising = send_stable & ~send_prev;
+    
+    // FSM: Next state logic
+    always @(*) begin
+        next_state = state;
+        case (state)
+            IDLE: begin
+                if (send_rising)
+                    next_state = TRIGGERED;
+            end
+            
+            TRIGGERED: begin
+                // Wait for TX to start (idle goes low)
+                if (!tx_idle)
+                    next_state = WAIT_IDLE;
+            end
+            
+            WAIT_IDLE: begin
+                // Wait for TX to finish (idle goes high again)
+                if (tx_idle)
+                    next_state = IDLE;
+            end
+            
+            default: next_state = IDLE;
+        endcase
+    end
+    
+    // State register
+    always @(posedge sysclk or negedge reset_n) begin
+        if (!reset_n)
+            state <= IDLE;
+        else
+            state <= next_state;
+    end
+    
+    // Output logic: Single pulse on transition to TRIGGERED
+    always @(posedge sysclk or negedge reset_n) begin
+        if (!reset_n)
+            trigger_out <= 0;
+        else
+            trigger_out <= (state == IDLE && next_state == TRIGGERED);
+    end
+
+endmodule
