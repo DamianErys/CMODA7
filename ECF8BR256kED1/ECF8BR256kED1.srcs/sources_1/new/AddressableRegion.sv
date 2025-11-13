@@ -721,24 +721,27 @@ module AddressableRegion(
             .out(DataBus)     // Output bus (tri-state)
         );
              
-        wire tx_trigger_pulse;
-        
-        TriggerSync trigger_sync_inst (
-            .sysclk(SYSCLK),
-            .reset_n(reset_n),
-            .send_in(Send & CLK_IN),      // Your slow send signal
-            .tx_idle(TX_Idle_Flag),       // From uart_tx
-            .trigger_out(tx_trigger_pulse) // Single SYSCLK pulse
-        );
-        
-        uart_tx uart_tx_inst (
-            .clk(SYSCLK),
-            .reset_n(reset_n),
-            .trigger_i(tx_trigger_pulse),  // Clean single pulse!
-            .uart_txd(Tx),
-            .ToSend(TxBufferVal),
-            .idle_o(TX_Idle_Flag)
-        );
+    wire tx_trigger_pulse;
+    wire [7:0] tx_data_stable;
+    
+    TriggerSync trigger_sync_inst (
+        .sysclk(SYSCLK),
+        .reset_n(reset_n),
+        .send_in(Send & CLK_IN),
+        .tx_idle(TX_Idle_Flag),
+        .data_in(TxBufferVal),        // Potentially unstable data
+        .trigger_out(tx_trigger_pulse),
+        .data_out(tx_data_stable)     // Stable, latched data
+    );
+    
+    uart_tx uart_tx_inst (
+        .clk(SYSCLK),
+        .reset_n(reset_n),
+        .trigger_i(tx_trigger_pulse),
+        .uart_txd(Tx),
+        .ToSend(tx_data_stable),      // Use latched data!
+        .idle_o(TX_Idle_Flag)
+    );
         
         
          Register8bit TxBuffer (

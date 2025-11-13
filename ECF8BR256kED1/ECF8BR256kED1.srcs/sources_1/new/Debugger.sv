@@ -462,7 +462,9 @@ module TriggerSync (
     input  wire reset_n,
     input  wire send_in,          // Slow send signal (from Send & CLK_IN)
     input  wire tx_idle,          // From uart_tx idle_o
-    output reg  trigger_out       // Single SYSCLK pulse
+    input  wire [7:0] data_in,    // Data from slow clock domain
+    output reg  trigger_out,      // Single SYSCLK pulse
+    output reg  [7:0] data_out    // Stable data for TX
 );
 
     typedef enum logic [1:0] {
@@ -505,13 +507,11 @@ module TriggerSync (
             end
             
             TRIGGERED: begin
-                // Wait for TX to start (idle goes low)
                 if (!tx_idle)
                     next_state = WAIT_IDLE;
             end
             
             WAIT_IDLE: begin
-                // Wait for TX to finish (idle goes high again)
                 if (tx_idle)
                     next_state = IDLE;
             end
@@ -528,7 +528,16 @@ module TriggerSync (
             state <= next_state;
     end
     
-    // Output logic: Single pulse on transition to TRIGGERED
+    // CRITICAL: Capture data_in when send_rising detected
+    // This ensures stable data throughout transmission
+    always @(posedge sysclk or negedge reset_n) begin
+        if (!reset_n)
+            data_out <= 8'h00;
+        else if (send_rising)
+            data_out <= data_in;  // Latch data at trigger moment
+    end
+    
+    // Output trigger pulse
     always @(posedge sysclk or negedge reset_n) begin
         if (!reset_n)
             trigger_out <= 0;
