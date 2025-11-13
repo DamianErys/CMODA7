@@ -182,7 +182,7 @@ module ADDBusBuffer (
     genvar i;
     generate
         for (i = 0; i < 8; i = i + 1) begin : bit_buffer
-            assign out[i] = (Enable & EnableBits[i]) ? Bus[i] : 1'bZ;
+            assign out[i] = (Enable | EnableBits[i]) ? Bus[i] : 1'bZ;
         end
     endgenerate
 endmodule

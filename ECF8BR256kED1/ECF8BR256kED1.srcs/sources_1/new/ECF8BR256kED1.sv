@@ -19,9 +19,9 @@ module ECF8F24(
     inout  wire PRTA3,     
     inout  wire PRTA4,    
     inout  wire PRTA5,     
-    inout wire PRTA6,     
-    inout wire PRTA7,     
-    inout wire PRTA8,    
+    inout  wire PRTA6,     
+    inout  wire PRTA7,     
+    inout  wire PRTA8,    
     inout  wire PRTB1,     
     inout  wire PRTB2,     
     inout  wire PRTB3,     
@@ -272,12 +272,7 @@ module ECF8F24(
     
     );
    
-    
-    assign PRTA1 = Debuglines[0];
-    assign PRTA2 = Debuglines[1];
-    assign PRTA3 = Debuglines[2];
-    assign PRTA4 = Debuglines[3];
-    assign PRTA5 = Debuglines[4];
+   
     
   
     
